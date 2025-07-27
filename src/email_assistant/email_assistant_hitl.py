@@ -444,7 +444,7 @@ if False:
 #######################################################
 # Example 2: Edit the respond 
 #######################################################
-if True:
+if False:
     # Same email as before
     email_input_respond = {
         "to": "Lance Martin <lance@company.com>",
@@ -505,3 +505,121 @@ if True:
             Interrupt_Object = chunk['__interrupt__'][0]
             print("\nINTERRUPT OBJECT:")
             print(f"Action Request: {Interrupt_Object.value[0]['action_request']}") 
+            
+
+###########################################################################
+# Example 3: Interrupts Allow Us to Provide Feedback on Tool Calls
+###########################################################################
+if False:
+    # Respond - Meeting Request Email
+    email_input_respond = {
+        "to": "Lance Martin <lance@company.com>",
+        "author": "Project Manager <pm@client.com>",
+        "subject": "Tax season let's schedule call",
+        "email_thread": "Lance,\n\nIt's tax season again, and I wanted to schedule a call to discuss your tax planning strategies for this year. I have some suggestions that could potentially save you money.\n\nAre you available sometime next week? Tuesday or Thursday afternoon would work best for me, for about 45 minutes.\n\nRegards,\nProject Manager"
+    }
+
+    # Compile the graph
+    checkpointer = InMemorySaver()
+    graph = overall_workflow.compile(checkpointer=checkpointer)
+    thread_id_5 = uuid.uuid4()
+    thread_config_5 = {"configurable": {"thread_id": thread_id_5}}
+
+    # Run the graph until the first interrupt 
+    # Email will be classified as "respond" 
+    # Agent will create a schedule_meeting and write_email tool call
+    print("Running the graph until the first interrupt...")
+    for chunk in graph.stream({"email_input": email_input_respond}, config=thread_config_5):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+    
+    # Simulate Schedule_meeting 
+    print(f"\nSimulating user providing feedback for the {Interrupt_Object.value[0]['action_request']['action']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "response", "args": "Please schedule this for 30 minutes instead of 45 minutes, and I prefer afternoon meetings after 2pm."}]), config=thread_config_5):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+            
+    # Accept Schedule_meeting
+    print(f"\nSimulating user accepting the {Interrupt_Object.value[0]['action_request']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "accept"}]), config=thread_config_5):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+            
+    # Feedback for write_email
+    print(f"\nSimulating user providing feedback for the {Interrupt_Object.value[0]['action_request']['action']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "response", "args": "Shorter and less formal. Include a closing statement about looking forward to the meeting!"}]), config=thread_config_5):
+        # Inspect response_agent most recent message
+        if 'response_agent' in chunk:
+            chunk['response_agent']['messages'][-1].pretty_print()
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+    
+    # Accept the write_email
+    print(f"\nSimulating user accepting the {Interrupt_Object.value[0]['action_request']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "accept"}]), config=thread_config_5):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+
+###########################################################################
+# Example 4: Interrupts Allow Us to invole Question Tool Calls
+###########################################################################
+if True:
+    # Respond
+    email_input_respond = {
+        "to": "Lance Martin <lance@company.com>",
+        "author": "Partner <partner@home.com>",
+        "subject": "Dinner?",
+        "email_thread": "Hey, do you want italian or indian tonight?"}
+
+    # Compile the graph
+    checkpointer = InMemorySaver()
+    graph = overall_workflow.compile(checkpointer=checkpointer)
+    thread_id_6 = uuid.uuid4()
+    thread_config_6 = {"configurable": {"thread_id": thread_id_6}}
+
+    # Run the graph until the first interrupt
+    print("Running the graph until the first interrupt...")
+    for chunk in graph.stream({"email_input": email_input_respond}, config=thread_config_6):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+    
+    # Provide feedback for Question tool call
+    print(f"\nSimulating user providing feedback for the {Interrupt_Object.value[0]['action_request']['action']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "response", "args": "Let's do indian."}]), config=thread_config_6):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+    
+    # Accept the write_email tool call
+    print(f"\nSimulating user accepting the {Interrupt_Object.value[0]['action_request']['action']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "accept"}]), config=thread_config_6):
+        # Inspect response_agent most recent message
+        if 'response_agent' in chunk:
+            chunk['response_agent']['messages'][-1].pretty_print()
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+    
+    
