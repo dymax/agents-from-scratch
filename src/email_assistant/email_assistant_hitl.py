@@ -160,7 +160,7 @@ def triage_interrupt_handler(state: State) -> Command[Literal["response_agent", 
 def llm_call(state: State):
     """LLM decides whether to call a tool or not"""
 
-    return {
+    response = {
         "messages": [
             llm_with_tools.invoke(
                 [
@@ -175,6 +175,7 @@ def llm_call(state: State):
             )
         ]
     }
+    return response
 
 def interrupt_handler(state: State) -> Command[Literal["llm_call", "__end__"]]:
     """Creates an interrupt for human review of tool calls"""
@@ -389,3 +390,118 @@ overall_workflow = (
 )
 
 email_assistant = overall_workflow.compile()
+
+
+#######################################################
+# Example 1: Respond to email -> schedule a meeting
+#######################################################
+import uuid
+from langgraph.checkpoint.memory import InMemorySaver
+
+if False:
+    # Email to respond to
+    email_input_respond = {
+        "to": "Lance Martin <lance@company.com>",
+        "author": "Project Manager <pm@client.com>",
+        "subject": "Tax season let's schedule call",
+        "email_thread": "Lance,\n\nIt's tax season again, and I wanted to schedule a call to discuss your tax planning strategies for this year. I have some suggestions that could potentially save you money.\n\nAre you available sometime next week? Tuesday or Thursday afternoon would work best for me, for about 45 minutes.\n\nRegards,\nProject Manager"
+    }
+
+    # Compile the graph with checkpointer
+    checkpointer = InMemorySaver()
+    graph = overall_workflow.compile(checkpointer=checkpointer)
+    thread_id_1 = uuid.uuid4()
+    thread_config_1 = {"configurable": {"thread_id": thread_id_1}}
+
+    # Run the graph until a tool call that we choose to interrupt
+    print("Running the graph until the first interrupt...")
+    for chunk in graph.stream({"email_input": email_input_respond}, config=thread_config_1):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+        
+    # accept schedule a meeting
+    print(f"\nSimulating user accepting the {Interrupt_Object.value[0]['action_request']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "accept"}]), config=thread_config_1):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+
+    # accept write_email
+    print(f"\nSimulating user accepting the {Interrupt_Object.value[0]['action_request']} tool call...")
+    for chunk in graph.stream(Command(resume=[{"type": "accept"}]), config=thread_config_1):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+
+
+#######################################################
+# Example 2: Edit the respond 
+#######################################################
+if True:
+    # Same email as before
+    email_input_respond = {
+        "to": "Lance Martin <lance@company.com>",
+        "author": "Project Manager <pm@client.com>",
+        "subject": "Tax season let's schedule call",
+        "email_thread": "Lance,\n\nIt's tax season again, and I wanted to schedule a call to discuss your tax planning strategies for this year. I have some suggestions that could potentially save you money.\n\nAre you available sometime next week? Tuesday or Thursday afternoon would work best for me, for about 45 minutes.\n\nRegards,\nProject Manager"
+    }
+
+    # Compile the graph with new thread
+    checkpointer = InMemorySaver()
+    graph = overall_workflow.compile(checkpointer=checkpointer)
+    thread_id_2 = uuid.uuid4()
+    thread_config_2 = {"configurable": {"thread_id": thread_id_2}}
+
+    # Run the graph until the first interrupt - will be classified as "respond" and the agent will create a write_email tool call
+    print("Running the graph until the first interrupt...")
+    for chunk in graph.stream({"email_input": email_input_respond}, config=thread_config_2):
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+    
+    # Now simulate user editing the schedule_meeting tool call
+    print("\nSimulating user editing the schedule_meeting tool call...")
+    edited_schedule_args = {
+        "attendees": ["pm@client.com", "lance@company.com"],
+        "subject": "Tax Planning Discussion",
+        "duration_minutes": 30,  # Changed from 45 to 30
+        "preferred_day": "2025-05-06",
+        "start_time": 14 
+    }
+
+    for chunk in graph.stream(Command(resume=[{"type": "edit", "args": {"args": edited_schedule_args}}]), config=thread_config_2):
+        # Inspect response_agent most recent message
+        if 'response_agent' in chunk:
+            chunk['response_agent']['messages'][-1].pretty_print()
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
+    
+    # Now simulate user editing the write_email tool call
+    print("\nSimulating user editing the write_email tool call...")
+    edited_email_args = {
+        "to": "pm@client.com",
+        "subject": "Re: Tax season let's schedule call",
+        "content": "Hello Project Manager,\n\nThank you for reaching out about tax planning. I scheduled a 30-minute call next Thursday at 3:00 PM. Would that work for you?\n\nBest regards,\nLance Martin"
+    }
+
+    for chunk in graph.stream(Command(resume=[{"type": "edit", "args": {"args": edited_email_args}}]), config=thread_config_2):
+        # Inspect response_agent most recent message
+        if 'response_agent' in chunk:
+            chunk['response_agent']['messages'][-1].pretty_print()
+        # Inspect interrupt object if present
+        if '__interrupt__' in chunk:
+            Interrupt_Object = chunk['__interrupt__'][0]
+            print("\nINTERRUPT OBJECT:")
+            print(f"Action Request: {Interrupt_Object.value[0]['action_request']}") 
