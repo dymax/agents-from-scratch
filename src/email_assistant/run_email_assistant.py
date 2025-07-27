@@ -161,18 +161,18 @@ overall_workflow = (
 email_assistant = overall_workflow.compile()
 
 if __name__ == "__main__":
-    # email_input = {
-    #     "author": "Alice Smith <alice.smith@gmail.com>",
-    #     "to": "John Doe <john.doe@gmail.com>",
-    #     "subject": "Quick question about API documentation",
-    #     "email_thread": "Hi John,\nI was reviewing the API documentation for the new authentication service and noticed a few endpoints seem to be missing from the specs. Could you help clarify if this was intentional or if we should update the docs?\nSpecifically, I'm looking at:\n- /auth/refresh\n- /auth/validate\nThanks!\nAlice"
-    #     }
     email_input = {
-        "author": "System Admin <sysadmin@company.com>",
-        "to": "Development Team <dev@company.com>",
-        "subject": "Scheduled maintenance - database downtime",
-        "email_thread": "Hi team,\n\nThis is a reminder that we'll be performing scheduled maintenance on the production database tonight from 2AM to 4AM EST. During this time, all database services will be unavailable.\n\nPlease plan your work accordingly and ensure no critical deployments are scheduled during this window.\n\nThanks,\nSystem Admin Team"
-    }
+        "author": "Alice Smith <alice.smith@gmail.com>",
+        "to": "John Doe <john.doe@gmail.com>",
+        "subject": "Quick question about API documentation",
+        "email_thread": "Hi John,\nI was reviewing the API documentation for the new authentication service and noticed a few endpoints seem to be missing from the specs. Could you help clarify if this was intentional or if we should update the docs?\nSpecifically, I'm looking at:\n- /auth/refresh\n- /auth/validate\nThanks!\nAlice"
+        }
+    # email_input = {
+    #     "author": "System Admin <sysadmin@company.com>",
+    #     "to": "Development Team <dev@company.com>",
+    #     "subject": "Scheduled maintenance - database downtime",
+    #     "email_thread": "Hi team,\n\nThis is a reminder that we'll be performing scheduled maintenance on the production database tonight from 2AM to 4AM EST. During this time, all database services will be unavailable.\n\nPlease plan your work accordingly and ensure no critical deployments are scheduled during this window.\n\nThanks,\nSystem Admin Team"
+    # }
 
     # Run the agent
     response = email_assistant.invoke({"email_input": email_input})
