@@ -622,4 +622,6 @@ if True:
             print("\nINTERRUPT OBJECT:")
             print(f"Action Request: {Interrupt_Object.value[0]['action_request']}")
     
-    
+    state = graph.get_state(thread_config_6)
+    for m in state.values['messages']:
+        m.pretty_print()
